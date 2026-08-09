@@ -8,7 +8,7 @@
 <strong>List of rooms</strong>
 <hr>
 {% for chatroom in chat_rooms %}
-  <a href="#">{{chatroom.name}}</a><br>
+  <a href="{% url 'chatroom' chatroom.slug %}">{{chatroom.name}}</a><br>
 {% endfor %}
 </body>
 </html>
