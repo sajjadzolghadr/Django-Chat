@@ -97,17 +97,37 @@
     </form>
 
     <script>
-        document.getElementById('myForm').onsubmit = function(e) {
-            e.preventDefault();
-            let txt = document.getElementById('msg').value.trim();
-            if (txt) {
-                alert('✅ Message sent:\n\n' + txt);
-                this.reset();
-            } else {
-                alert('❌ Please enter a message.');
-            }
-        };
-    </script>
+const roomName = "general";
+
+const socket = new WebSocket(
+    "ws://" + window.location.host + "/ws/" + roomName + "/"
+);
+
+document.getElementById("myForm").onsubmit = function(e) {
+    e.preventDefault();
+
+    const msg = document.getElementById("msg");
+    const text = msg.value.trim();
+
+    if (text) {
+        socket.send(JSON.stringify({
+            "message": text
+        }));
+
+        msg.value = "";
+    }
+};
+
+socket.onmessage = function(e) {
+    const data = JSON.parse(e.data);
+
+    alert("✅ " + data.message);
+};
+
+socket.onclose = function() {
+    console.log("WebSocket disconnected");
+};
+</script>
 
 </body>
 </html>
