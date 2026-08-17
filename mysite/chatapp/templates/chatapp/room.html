@@ -1,133 +1,173 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Send Message</title>
+    <title>{{ chatroom.name }} - Chat</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            min-height: 100vh;
-            background: #0d0e12;
-            font-family: system-ui, sans-serif;
-            padding: 40px 30px;
-        }
-        .chatroom-name {
-            color: #ede8df;
-            font-size: 28px;
-            font-weight: 600;
-            letter-spacing: 0.5px;
-            margin-bottom: 30px;
-        }
-        .chatroom-name span {
-            color: #dbbd94;
-        }
-        form {
-            background: #15181e;
-            padding: 20px 22px;
-            border-radius: 16px;
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            max-width: 360px;
-            width: 100%;
-            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.5);
-        }
-        form h4 {
-            color: #ede8df;
-            font-weight: 400;
-            font-size: 14px;
-            margin-bottom: 12px;
-        }
-        form h4 span {
-            color: #dbbd94;
-            font-weight: 600;
-        }
-        textarea {
-            width: 100%;
-            padding: 10px 12px;
-            background: rgba(255, 255, 255, 0.04);
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            border-radius: 10px;
-            color: #ede8df;
-            font-size: 13px;
-            font-family: inherit;
-            outline: none;
-            resize: vertical;
-            min-height: 60px;
-            transition: 0.3s;
-        }
-        textarea:focus {
-            border-color: rgba(219, 189, 148, 0.3);
-            background: rgba(255, 255, 255, 0.06);
-        }
-        textarea::placeholder {
-            color: rgba(255, 255, 255, 0.15);
-        }
-        button {
-            width: 100%;
-            margin-top: 10px;
-            padding: 10px;
-            background: #dbbd94;
-            border: none;
-            border-radius: 10px;
-            color: #0d0e12;
-            font-size: 13px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: 0.3s;
-        }
-        button:hover {
-            background: #c9a87e;
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(219, 189, 148, 0.15);
-        }
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{min-height:100vh;background:#0d0e12;font-family:system-ui,sans-serif;padding:40px 30px;display:flex;flex-direction:column;align-items:center}
+        .back-link{color:rgba(255,255,255,0.3);text-decoration:none;font-size:14px;margin-bottom:10px;align-self:flex-start;max-width:400px;width:100%}
+        .back-link:hover{color:#dbbd94}
+        .chatroom-name{color:#ede8df;font-size:32px;font-weight:600;margin-bottom:10px}
+        .chatroom-name span{color:#dbbd94}
+        .status{color:#ede8df;font-size:14px;margin-bottom:15px;padding:8px 16px;border-radius:8px;background:rgba(255,255,255,0.05);cursor:pointer}
+        .status.connected{color:#4caf50}
+        .status.disconnected{color:#f44336}
+        form{background:#15181e;padding:20px;border-radius:16px;max-width:400px;width:100%}
+        input,textarea{width:100%;padding:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);border-radius:10px;color:#ede8df;margin-bottom:10px;font-family:inherit}
+        button{width:100%;padding:10px;background:#dbbd94;border:none;border-radius:10px;color:#0d0e12;font-weight:600;cursor:pointer}
+        button:disabled{opacity:.5;cursor:not-allowed}
+        #message-list{max-width:400px;width:100%;margin-top:20px;max-height:300px;overflow-y:auto}
+        .msg-item{background:rgba(255,255,255,0.05);padding:10px;border-radius:10px;margin-bottom:8px;color:#ede8df}
+        .msg-item .msg-user{color:#dbbd94;font-weight:600}
+        .msg-item .msg-time{color:rgba(255,255,255,0.3);font-size:11px;margin-left:10px}
+        .reconnect-btn{background:#4caf50;margin-top:10px;max-width:400px;width:100%}
+        .reconnect-btn:hover{background:#388e3c}
     </style>
 </head>
 <body>
+    <a href="{% url 'index' %}" class="back-link">← Back to rooms</a>
 
-    <div class="chatroom-name">✦ <span>{{chatroom.name}}</span></div>
+    <div class="chatroom-name">✦ <span id="roomDisplay">{{ chatroom.name }}</span></div>
+
+    <div id="status" class="status disconnected">🔴 Connecting...</div>
 
     <form id="myForm">
-        <h4>✦ <span>Send</span> Message</h4>
-        <textarea id="msg" placeholder="Type your message..." required></textarea>
-        <button type="submit">✦ Send</button>
+        <input type="text" id="username" placeholder="Username..." value="User1">
+        <textarea id="msg" placeholder="Type message..." required></textarea>
+        <button type="submit" id="sendBtn" disabled>Send</button>
     </form>
 
+    <button id="reconnectBtn" class="reconnect-btn">🔄 Reconnect</button>
+    <div id="message-list"></div>
+
     <script>
-const roomName = "general";
+        const roomName = "{{ chatroom.slug }}";
+        let socket = null;
+        let reconnectAttempts = 0;
+        let isConnected = false;
 
-const socket = new WebSocket(
-    "ws://" + window.location.host + "/ws/" + roomName + "/"
-);
+        const roomDisplay = document.getElementById("roomDisplay");
+        const statusDiv = document.getElementById("status");
+        const sendBtn = document.getElementById("sendBtn");
+        const messageList = document.getElementById("message-list");
+        const form = document.getElementById("myForm");
+        const msgInput = document.getElementById("msg");
+        const usernameInput = document.getElementById("username");
+        const reconnectBtn = document.getElementById("reconnectBtn");
 
-document.getElementById("myForm").onsubmit = function(e) {
-    e.preventDefault();
+        roomDisplay.textContent = roomName;
 
-    const msg = document.getElementById("msg");
-    const text = msg.value.trim();
+        function connectWebSocket() {
+            const wsUrl = `ws://${window.location.host}/ws/${roomName}/`;
 
-    if (text) {
-        socket.send(JSON.stringify({
-            "message": text
-        }));
+            try {
+                socket = new WebSocket(wsUrl);
 
-        msg.value = "";
-    }
-};
+                socket.onopen = function() {
+                    statusDiv.textContent = "🟢 Connected to " + roomName;
+                    statusDiv.className = "status connected";
+                    sendBtn.disabled = false;
+                    reconnectAttempts = 0;
+                    isConnected = true;
+                    addMessage("System", `Welcome to ${roomName}!`, "system");
+                };
 
-socket.onmessage = function(e) {
-    const data = JSON.parse(e.data);
+                socket.onmessage = function(e) {
+                    const data = JSON.parse(e.data);
+                    addMessage(data.username || "Anonymous", data.message, data.room);
+                };
 
-    alert("✅ " + data.message);
-};
+                socket.onclose = function() {
+                    statusDiv.textContent = "🔴 Disconnected from " + roomName;
+                    statusDiv.className = "status disconnected";
+                    sendBtn.disabled = true;
+                    isConnected = false;
 
-socket.onclose = function() {
-    console.log("WebSocket disconnected");
-};
-</script>
+                    if (reconnectAttempts < 10) {
+                        reconnectAttempts++;
+                        setTimeout(connectWebSocket, 5000);
+                    }
+                };
 
+                socket.onerror = function() {
+                    statusDiv.textContent = "⚠️ Error connecting to " + roomName;
+                    statusDiv.className = "status disconnected";
+                    sendBtn.disabled = true;
+                    isConnected = false;
+                };
+
+            } catch (error) {
+                statusDiv.textContent = "⚠️ Connection failed";
+                statusDiv.className = "status disconnected";
+                sendBtn.disabled = true;
+                isConnected = false;
+            }
+        }
+
+        function addMessage(username, message, room) {
+            const msgDiv = document.createElement("div");
+            msgDiv.className = "msg-item";
+            const time = new Date().toLocaleTimeString("en-US");
+            const isSystem = username === "System" || username === "system";
+            msgDiv.innerHTML = `
+                <span class="msg-user">${isSystem ? "🤖 System" : username}</span>
+                <span class="msg-time">${time}</span>
+                <br><span>${message}</span>
+            `;
+            messageList.appendChild(msgDiv);
+            messageList.scrollTop = messageList.scrollHeight;
+        }
+
+        function sendMessage() {
+            if (!socket || socket.readyState !== WebSocket.OPEN) {
+                alert("Not connected!");
+                return;
+            }
+
+            const message = msgInput.value.trim();
+            const username = usernameInput.value.trim();
+
+            if (!message || !username) {
+                alert("Fill all fields!");
+                return;
+            }
+
+            socket.send(JSON.stringify({ message, username, room: roomName }));
+            msgInput.value = "";
+            msgInput.focus();
+        }
+
+        function forceReconnect() {
+            if (socket) {
+                try { socket.close(); } catch(e) {}
+                socket = null;
+            }
+            reconnectAttempts = 0;
+            statusDiv.textContent = "🔄 Reconnecting...";
+            statusDiv.className = "status disconnected";
+            sendBtn.disabled = true;
+            isConnected = false;
+            connectWebSocket();
+        }
+
+        form.addEventListener("submit", function(e) {
+            e.preventDefault();
+            sendMessage();
+        });
+
+        msgInput.addEventListener("keydown", function(e) {
+            if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        statusDiv.addEventListener("click", forceReconnect);
+        reconnectBtn.addEventListener("click", forceReconnect);
+
+        connectWebSocket();
+    </script>
 </body>
 </html>
