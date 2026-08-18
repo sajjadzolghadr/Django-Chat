@@ -1,5 +1,9 @@
 import json
+from asgiref.sync import sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
+from .models import ChatRoom, ChatMessage
+from django.contrib.auth.models import User
+
 
 class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -23,7 +27,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
         data = json.loads(text_data)
         message = data['message']
         username = data['username']
-        room = data['room']
+        room_slug = data['room']
+
 
         await self.channel_layer.group_send(
             self.room_group_name,
@@ -31,9 +36,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 'type': 'chat_message',
                 'message': message,
                 'username': username,
-                'room': room,
+                'room': room_slug,
             }
         )
+
+
+        await self.save_message(username, room_slug, message)
 
     async def chat_message(self, event):
         message = event['message']
@@ -45,3 +53,20 @@ class ChatConsumer(AsyncWebsocketConsumer):
             'username': username,
             'room': room,
         }))
+
+    @sync_to_async
+    def save_message(self, username, room_slug, message):
+        try:
+            user = User.objects.get(username=username)
+            room = ChatRoom.objects.get(slug=room_slug)
+            ChatMessage.objects.create(
+                user=user,
+                room=room,
+                message_content=message
+            )
+        except User.DoesNotExist:
+            print(f"User '{username}' not found")
+        except ChatRoom.DoesNotExist:
+            print(f"Room '{room_slug}' not found")
+        except Exception as e:
+            print(f"Error saving message: {e}")
