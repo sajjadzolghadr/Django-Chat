@@ -1,91 +1,39 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chat Rooms</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            min-height: 100vh;
-            background: #0d0e12;
-            font-family: system-ui, -apple-system, sans-serif;
-            padding: 40px 30px;
-        }
-        .container {
-            max-width: 500px;
-            width: 100%;
-        }
-        .page-title {
-            color: #ede8df;
-            font-size: 26px;
-            font-weight: 600;
-            letter-spacing: 0.5px;
-            margin-bottom: 8px;
-        }
-        .page-title span {
-            color: #dbbd94;
-        }
-        .divider {
-            width: 60px;
-            height: 2px;
-            background: rgba(219, 189, 148, 0.2);
-            margin-bottom: 25px;
-        }
-        .room-list {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-        .room-item {
-            display: block;
-            padding: 14px 18px;
-            background: #15181e;
-            border: 1px solid rgba(255, 255, 255, 0.04);
-            border-radius: 12px;
-            color: #ede8df;
-            text-decoration: none;
-            font-size: 15px;
-            font-weight: 400;
-            transition: all 0.3s ease;
-        }
-        .room-item:hover {
-            background: rgba(219, 189, 148, 0.06);
-            border-color: rgba(219, 189, 148, 0.15);
-            transform: translateX(4px);
-        }
-        .room-item .icon {
-            color: #dbbd94;
-            margin-right: 10px;
-            opacity: 0.5;
-        }
-        .empty {
-            color: rgba(255, 255, 255, 0.2);
-            font-size: 14px;
-            padding: 20px 0;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Chat Rooms</title>
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{min-height:100vh;background:#0d0e12;font-family:system-ui,sans-serif;padding:40px 30px}
+.container{max-width:500px;width:100%}
+.title{color:#ede8df;font-size:26px;margin-bottom:10px}.title span{color:#dbbd94}
+.line{width:60px;height:2px;background:#dbbd94;margin-bottom:25px;opacity:.2}
+.rooms{display:grid;gap:8px}
+.room{padding:14px 18px;background:#15181e;border:1px solid #ffffff0a;border-radius:12px;color:#ede8df;text-decoration:none;transition:.3s}
+.room:hover{background:#dbbd9410;transform:translateX(4px)}
+.icon{color:#dbbd94;margin-right:8px}.empty{color:#ffffff33}
+</style>
 </head>
+
 <body>
+<div class="container">
 
-    <div class="container">
-        <div class="page-title">✦ <span>Chat</span> Rooms</div>
-        <div class="divider"></div>
+<div class="title">✦ <span>Chat</span> Rooms</div>
+<div class="line"></div>
 
-        <div class="room-list">
-            {% for chatroom in chat_rooms %}
-                <a href="{% url 'chatroom' chatroom.slug %}" class="room-item">
-                    <span class="icon">✦</span> {{ chatroom.name }}
-                </a>
-            {% empty %}
-                <div class="empty">No rooms available</div>
-            {% endfor %}
-        </div>
-    </div>
+<div class="rooms">
+{% for chatroom in chat_rooms %}
+<a href="{% url 'chatroom' chatroom.slug %}" class="room">
+    <span class="icon">✦</span>{{ chatroom.name }}
+</a>
+{% empty %}
+<div class="empty">No rooms available</div>
+{% endfor %}
+</div>
 
+</div>
 </body>
 </html>
