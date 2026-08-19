@@ -38,10 +38,118 @@
         <textarea id="msg" placeholder="Type message..." required></textarea>
         <button type="submit" id="sendBtn" disabled>Send</button>
     </form>
+     <button id="reconnectBtn" class="reconnect-btn">🔄 Reconnect</button>
 
-    <button id="reconnectBtn" class="reconnect-btn">🔄 Reconnect</button>
     <div id="message-list"></div>
+    <style>
+    #message-list {
+        max-width: 500px;
+        width: 100%;
+        margin-top: 20px;
+        max-height: 400px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        padding-right: 5px;
+    }
+    #message-list::-webkit-scrollbar {
+        width: 4px;
+    }
+    #message-list::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 10px;
+    }
+    #message-list::-webkit-scrollbar-thumb {
+        background: #dbbd94;
+        border-radius: 10px;
+    }
+    .msg-item {
+        background: #15181e;
+        padding: 14px 18px;
+        border-radius: 14px;
+        border: 1px solid rgba(255, 255, 255, 0.04);
+        transition: all 0.3s ease;
+        animation: fadeIn 0.3s ease;
+    }
+    .msg-item:hover {
+        background: rgba(255, 255, 255, 0.06);
+        border-color: rgba(219, 189, 148, 0.15);
+        transform: translateX(4px);
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .msg-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 6px;
+    }
+    .msg-user-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .msg-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: #dbbd94;
+        color: #0d0e12;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 14px;
+        text-transform: uppercase;
+    }
+    .msg-user {
+        color: #dbbd94;
+        font-weight: 600;
+        font-size: 14px;
+    }
+    .msg-time {
+        color: rgba(255, 255, 255, 0.25);
+        font-size: 11px;
+    }
+    .msg-body {
+        color: #ede8df;
+        font-size: 14px;
+        word-wrap: break-word;
+        padding-left: 42px;
+        line-height: 1.5;
+    }
+    .empty-msg {
+        color: rgba(255, 255, 255, 0.15);
+        font-size: 14px;
+        padding: 30px 0;
+        text-align: center;
+        background: rgba(255, 255, 255, 0.02);
+        border-radius: 12px;
+        border: 1px dashed rgba(255, 255, 255, 0.05);
+    }
+</style>
 
+<div id="message-list">
+    {% for msg in messages %}
+        <div class="msg-item">
+            <div class="msg-header">
+                <div class="msg-user-wrapper">
+                    <div class="msg-avatar">{{ msg.user.username|first }}</div>
+                    <span class="msg-user">{{ msg.user.username }}</span>
+                </div>
+                <span class="msg-time">{{ msg.date|date:"H:i" }}</span>
+            </div>
+            <div class="msg-body">
+                {{ msg.message_content }}
+            </div>
+        </div>
+    {% empty %}
+        <div class="empty-msg">💬 No messages yet. Start the conversation!</div>
+    {% endfor %}
+</div>
     <script>
         const roomName = "{{ chatroom.slug }}";
         let socket = null;
@@ -66,7 +174,7 @@
                 socket = new WebSocket(wsUrl);
 
                 socket.onopen = function() {
-                    statusDiv.textContent = "🟢 Connected to " + roomName;
+                    statusDiv.textContent = "🟢 Connected " ;
                     statusDiv.className = "status connected";
                     sendBtn.disabled = false;
                     reconnectAttempts = 0;
